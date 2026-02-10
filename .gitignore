@@ -1,0 +1,17 @@
+# --- 1. 屏蔽编译产出 (基于你的截图) ---
+build/                  # 屏蔽那个蓝色的 build 文件夹
+benchmark_test          # 屏蔽根目录下那个黑色的可执行文件
+*.o                     # 屏蔽所有 C++ 编译中间文件
+*.d                     # 屏蔽依赖文件
+
+# --- 2. 屏蔽 macOS 系统垃圾 ---
+.DS_Store               # Mac 用户必须屏蔽这个，否则仓库里全是这东西
+
+# --- 3. 屏蔽 IDE 配置文件 (Anti-gravity/VS Code) ---
+.vscode/                # 屏蔽个人编辑器配置
+.idea/                  # 如果你以后用 CLion
+*.json                  # 除非是项目必须的配置，否则慎传
+
+# --- 4. 其他 ---
+CMakeCache.txt          # 屏蔽 CMake 缓存
+CMakeFiles/
