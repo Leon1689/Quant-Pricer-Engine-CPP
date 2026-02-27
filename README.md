@@ -1,60 +1,40 @@
-# Quant Pricer Engine (C++17)
+# High-Performance Quantitative Pricing Engine (C++17)
+### Advanced Monte Carlo Simulation for Fat-Tail Risk & Derivatives Analytics
 
-A high-performance Monte Carlo derivatives pricing engine optimized for modern multi-core architectures. This engine supports **European Options** pricing under **Geometric Brownian Motion (GBM)** and **Fat-Tail (Student-t)** models, featuring OpenMP parallelization and SIMD-friendly vectorization.
+This project is a high-concurrency pricing engine optimized for modern multi-core architectures. It is designed to address the limitations of the Black-Scholes model by implementing **Fat-Tail (Student-t) distribution** models, providing more accurate risk assessment for "Black Swan" events in derivatives markets.
 
-## Features
-- **Monte Carlo Simulation**: Euler-Maruyama discretization.
-- **Fat-Tail Modeling**: Student-t distribution support to capture market extremes (kurtosis).
-- **High Performance**: 
-  - **OpenMP Parallelism**: Multi-threaded execution with dynamic scheduling.
-  - **Cache Optimization**: Block-based path generation (1024 paths/block) to maximize L1/L2 cache hits.
-  - **Fast RNG**: `Xoshiro256++` for high-throughput random number generation.
-- **Greeks Calculation**: Delta and Gamma estimation via Finite Difference Method (FDM).
+## 📈 Quantitative Overview
+Standard models often underestimate the probability of extreme market moves (**Leptokurtosis**). This engine implements:
+- **GBM Model**: For standard European-style derivatives pricing.
+- **Student-t Model**: Specifically designed to capture market **Fat-Tails**, essential for high-conviction risk management and tail-risk hedging.
+- **Fixed Income Extensibility**: The modular architecture allows for seamless integration of Stochastic Interest Rate models (e.g., Hull-White, Vasicek) for pricing bond options and swaps.
 
-## Performance & Architecture
+## 🛠 Engineering & High Performance
+The engine is built with a "Performance-First" mindset, leveraging low-level C++ optimizations to achieve industrial-grade throughput.
 
-### Throughput Metrics
-The engine delivers industrial-grade performance on standard commodity hardware:
+### Performance Metrics (8-Core CPU)
 - **Normal Distribution**: ~2.2 Million paths/sec
-- **Student-t Distribution**: **~660,000 paths/sec** (Computationally intensive due to `std::exp` and `std::log` calls in RNG)
+- **Student-t Distribution**: ~660,000 paths/sec
+- **Scalability**: Achieved **~6.8x Speedup** through OpenMP parallelization, reaching near-linear scaling.
 
-### Speedup Analysis
-Achieved **~6.8x Speedup** on an 8-core architecture compared to serial execution:
+### Key Technical Implementations
+1. **Cache-Aware Architecture**: Implemented block-based path generation (1024 paths/block) to maximize L1/L2 cache hits, minimizing memory latency during intensive simulations.
+2. **Parallel Reduction (Optimized for Contention)**: Used `#pragma omp parallel reduction` instead of atomics. This eliminates "cache line bouncing" and bus contention, ensuring threads operate on local accumulators.
+3. **Thread-Safe Randomness (Anti-Correlation)**: Utilized `thread_local` instances of `Xoshiro256++` with a deterministic seeding strategy (`base_seed + thread_id`). This prevents cross-thread path correlation, ensuring the statistical integrity of the Monte Carlo variance.
+4. **SIMD-Friendly Design**: Structured data loops to facilitate compiler auto-vectorization, maximizing FLOPs (Floating Point Operations) per cycle.
 
-$$ Speedup = \frac{T_{serial}}{T_{parallel}} \approx 6.8x $$
+## 🚀 Why This Matters for Trading
+In a Global Markets environment like **Barrenjoey**, pricing speed directly correlates with the ability to manage real-time risk. This engine proves:
+- **Accuracy**: Better modeling of extreme market distributions (Fat-Tails).
+- **Agility**: Rapid "Greeks" calculation (Delta/Gamma) via Finite Difference Methods to facilitate dynamic hedging.
+- **Robustness**: Production-ready C++ code that prioritizes thread safety and deterministic benchmarking.
 
-This near-linear scaling is achieved effectively utilizing OpenMP's thread pool to saturate available CPU cores.
-
-### Engineering Highlights
-
-1. **Parallel Reduction vs. Atomics**: 
-   - We utilize `#pragma omp parallel reduction(+:total_payoff)` instead of atomic operations.
-   - **Reason**: Atomic additions inside a high-frequency loop cause severe cache coherence traffic (cache line bouncing) between cores. Reduction gives each thread a local accumulator, which are summed only once at the end, eliminating contention.
-
-2. **Thread-Safe RNG (Anti-Collision)**:
-   - Each thread initializes a `thread_local` instance of `Xoshiro256++`.
-   - **Seeding Strategy**: `seed = base_seed + omp_get_thread_num()`.
-   - This guarantees that every thread generates a statistically independent sequence of random numbers, preventing **"cross-thread path correlation"** which would otherwise bias the Monte Carlo variance.
-
-3. **Deterministic Benchmarking**:
-   - The benchmark suite logs a `Base Seed` for every run.
-   - Supports fixed-seed modes for reproducible profiling and regression testing.
-
-## Build & Run
-
+## Build & Usage
 ### Prerequisites
-- CMake 3.10+
-- C++17 compliant compiler (GCC/Clang/MSVC)
-- OpenMP (optional but recommended for performance)
+- CMake 3.10+ | C++17 Compliant Compiler | OpenMP Support
 
-### Compilation
 ```bash
 mkdir build && cd build
 cmake ..
 make
-```
-
-### Running Benchmarks
-```bash
 ./benchmark_test
-```
